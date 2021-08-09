@@ -1,0 +1,79 @@
+//@version=4
+
+study(title="STB", shorttitle="STB", overlay=true, resolution="")
+
+
+
+src = close
+strength = input(2, title = "フィルター強度", type = input.integer, minval = 1, maxval = 10)
+showUpTrend = true
+showDownTrend = true
+
+ema1 = ema(src, 2 * strength)
+ema2 = ema(src, 5 * strength)
+ema3 = ema(src, 10 * strength)
+
+[diP, diM, _] = dmi(14, 1)
+
+var float renkoStep = na
+var float renkoLevel = na
+renkoStep := na(renkoStep) ? atr(14) : renkoStep[1]
+renkoLevel := na(renkoLevel) ? floor(src / renkoStep) * renkoStep : renkoLevel[1]
+renkoTrend = ""
+if renkoStep < src - renkoLevel
+    renkoLevel := renkoLevel + renkoStep
+    renkoTrend := "u"
+if src - renkoLevel < -renkoStep
+    renkoLevel := renkoLevel - renkoStep
+    renkoTrend := "d"
+
+up1 = ema1 > ema2 and ema2 > ema3
+down1 = ema1 < ema2 and ema2 < ema3
+up2 = diP - diM > 5 + strength
+down2 = diM - diP > 5 + strength
+up3 = renkoTrend == "u"
+down3 = renkoTrend == "d"
+
+var lastTrend = ""
+
+up = (lastTrend == "" or lastTrend == "down") and up1 and up2 and up3
+down = (lastTrend == "" or lastTrend == "up") and down1 and down2 and down3
+
+if up
+    lastTrend := "up"
+if down
+    lastTrend := "down"
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////Sign
+length = 20
+len2 = 10
+lower = lowest(length)
+upper = highest(length)
+upp=highest(high,length)
+downn=lowest(low,length)
+sup=highest(high,len2)
+sdown=lowest(low,len2)
+K2=iff(barssince(high>=upp[1])<=barssince(low<=downn[1]),sdown,sup)
+GHI = crossover(close,K2)
+JKL = crossunder(close,K2)
+e=plot(K2, title="TP/SL目安ライン", color=src>K2[1]?#2E7C13:(src<K2[1]?#BF217C:color.gray), linewidth=2, style=plot.style_line)
+longs = K2 < close
+shorts = K2 > close
+long = longs and showUpTrend ? up : na
+short = shorts and showDownTrend ? down : na
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////Sign
+
+/////////////////////////////////////////plot
+plotshape(long,  location=location.belowbar, style=shape.labelup,   color=#2E7C13,  size=size.tiny, text = "👽\nL", textcolor = color.white ,title='Buy')
+plotshape(short, location=location.abovebar, style=shape.labeldown, color=#BF217C, size=size.tiny,  text = "👽\nS",textcolor = color.white ,title='Sell')
+/////////////////////////////////////////plot
+
+////////////////////////////////////////alert
+alertcondition(GHI or JKL, title="TP/SLラインを上(下)抜け", message="現在価格がTP/SLラインを抜けました")
+alertcondition(long  or short, title="STBサイン", message="STBサインが出ました")
+alertcondition(long, title="買いサイン", message="買いサインが出ました")
+alertcondition(short, title="売りサイン", message="売りサインが出ました")
+
+
+
